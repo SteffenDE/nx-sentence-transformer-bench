@@ -1,0 +1,5 @@
+__pycache__
+.elixir_ls
+.venv
+.DS_Store
+._*
