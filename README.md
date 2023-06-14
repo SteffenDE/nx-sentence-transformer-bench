@@ -19,6 +19,9 @@ Then run the server using
 $ FLASK_APP=simple flask run
 ```
 
+The `multi_*.sh` scripts also expect the [Caddy webserver](https://caddyserver.com/) to be installed.
+On macOS, a simple `brew install caddy` will do.
+
 ## Results
 
 I used wrk to run a simple HTTP benchmark.
