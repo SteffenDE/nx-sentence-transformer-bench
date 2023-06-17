@@ -3,6 +3,12 @@
 Some benchmarks of the encoding performance of a sentence-transformer model using Python and Elixir.
 I ran these tests on my MacBook Pro with M1 Max (CPU only, so M1 Pro should be the same).
 
+## UPDATE
+
+In the initial results, I forgot to set the compiler option for the Nx.Serving. Doing this improves
+the performance of the Nx code significantly. The updated results are below. You can find the old
+results in the git history.
+
 ## Setup
 
 For running the python server, create a virtual environment:
@@ -80,34 +86,17 @@ $ wrk http://127.0.0.1:5001 -t 8 -c 32 -d 60
 Running 1m test @ http://127.0.0.1:5001
   8 threads and 32 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   571.15ms   47.34ms   1.04s    99.05%
-    Req/Sec     6.47      1.76    30.00     97.64%
-  3360 requests in 1.00m, 423.28KB read
-Requests/sec:     55.93
-Transfer/sec:      7.05KB
+    Latency    27.98ms    3.23ms 117.13ms   90.78%
+    Req/Sec   143.28     19.25   161.00     64.48%
+  68572 requests in 1.00m, 8.44MB read
+Requests/sec:   1141.16
+Transfer/sec:    143.76KB
 ```
 
-So we achieve ~half the performance of the simple Python server with more than double the latency.
-The Activity Monitor only shows ~300% cpu usage, although the BEAM should be able to use all cores.
-Let's try to start multiple `Nx.Serving` processes to see if this improves the performance.
+So we achieve nearly 10x the performance of the simple Python server with an impressively low latency.
+The Activity Monitor only shows ~450% cpu usage.
 
-```bash
-$ elixir nx_multi_serving.exs
-```
-
-```
-$ wrk http://127.0.0.1:5001 -t 8 -c 32 -d 60
-Running 1m test @ http://127.0.0.1:5001
-  8 threads and 32 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   811.61ms  167.04ms   1.26s    57.33%
-    Req/Sec     6.38      4.89    30.00     85.30%
-  2348 requests in 1.00m, 295.79KB read
-Requests/sec:     39.06
-Transfer/sec:      4.92KB
-```
-
-Nope, that's worse. Let's try to run multiple BEAM instances instead:
+Let's try to run multiple BEAM instances instead:
 
 ```bash
 $ ./multi_beam.sh
@@ -118,11 +107,12 @@ $ wrk http://127.0.0.1:6000 -t 8 -c 32 -d 60
 Running 1m test @ http://127.0.0.1:6000
   8 threads and 32 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   339.33ms  103.44ms 989.52ms   78.44%
-    Req/Sec    12.63      6.61    30.00     67.22%
-  5688 requests in 1.00m, 0.88MB read
-Requests/sec:     94.63
-Transfer/sec:     15.07KB
+    Latency   136.22ms    8.20ms 274.61ms   91.79%
+    Req/Sec    32.07     10.02    40.00     65.19%
+  14086 requests in 1.00m, 2.19MB read
+Requests/sec:    234.37
+Transfer/sec:     37.33KB
 ```
 
-That's better, but still not close to what we achieved using Python.
+Interestingly, although the CPU is not fully loaded with one BEAM instance, starting another one and
+load-balancing the requests does not improve the performance and actually lowers it quite significantly.

@@ -13,7 +13,10 @@ model_name = "sentence-transformers/all-MiniLM-L6-v2"
 {:ok, model_info} = Bumblebee.load_model({:hf, model_name})
 {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, model_name})
 
-serving = Bumblebee.Text.TextEmbedding.text_embedding(model_info, tokenizer)
+serving = Bumblebee.Text.TextEmbedding.text_embedding(model_info, tokenizer,
+  compile: [batch_size: 32, sequence_length: 8],
+  defn_options: [compiler: EXLA]
+)
 
 defmodule MyPlug do
   def init(_), do: []
@@ -25,7 +28,7 @@ defmodule MyPlug do
 end
 
 {:ok, _pid} = Supervisor.start_link([
-  {Nx.Serving, serving: serving, name: MyServing, defn_options: [compiler: EXLA]},
+  {Nx.Serving, serving: serving, name: MyServing},
   {Bandit, plug: MyPlug, port: System.get_env("PORT", "5001") |> String.to_integer()}
 ], strategy: :one_for_one)
 
